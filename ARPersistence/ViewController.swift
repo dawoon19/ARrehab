@@ -22,6 +22,9 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     @IBOutlet weak var statusLabel: UILabel!
     @IBOutlet weak var snapshotThumbnail: UIImageView!
     
+    var worldName: String = "_"
+    var gameName: String = "dragon-game"
+    var saveFileExtension: String = ".arexperience"
     var isInDecorationMode: Bool = false
     
     // MARK: - View Life Cycle
@@ -56,11 +59,16 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         
         exitDecorationMode()
         
+        let savedWorldNames = readSavedWorldNames()
+        if savedWorldNames.count == 0 {
+            onboardNewUser()
+        }
+
         sceneView.session.delegate = self
         sceneView.session.run(defaultConfiguration)
-        
+
         sceneView.debugOptions = [ .showFeaturePoints ]
-        
+
         // Prevent the screen from being dimmed after a while as users will likely
         // have long periods of interaction without touching the screen or buttons.
         UIApplication.shared.isIdleTimerDisabled = true
@@ -155,19 +163,22 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         return true
     }
     
+    func getSaveURL(name: String) -> URL {
+        return {
+            do {
+                return try FileManager.default
+                    .url(for: .documentDirectory,
+                         in: .userDomainMask,
+                         appropriateFor: nil,
+                         create: true)
+                    .appendingPathComponent(name + saveFileExtension)
+            } catch {
+                fatalError("Can't get file save URL: \(error.localizedDescription)")
+            }
+        }()
+    }
+    
     // MARK: - Persistence: Saving and Loading
-    lazy var mapSaveURL: URL = {
-        do {
-            return try FileManager.default
-                .url(for: .documentDirectory,
-                     in: .userDomainMask,
-                     appropriateFor: nil,
-                     create: true)
-                .appendingPathComponent("map.arexperience")
-        } catch {
-            fatalError("Can't get file save URL: \(error.localizedDescription)")
-        }
-    }()
     
     func readSavedWorldNames() -> Array<String> {
         let documentsUrl = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
@@ -192,7 +203,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
             
             do {
                 let data = try NSKeyedArchiver.archivedData(withRootObject: map, requiringSecureCoding: true)
-                try data.write(to: self.mapSaveURL, options: [.atomic])
+                try data.write(to: self.getSaveURL(name: self.worldName), options: [.atomic])
                 DispatchQueue.main.async {
                     self.loadExperienceButton.isHidden = false
                     self.loadExperienceButton.isEnabled = true
@@ -226,7 +237,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     
     // Called opportunistically to verify that map data can be loaded from filesystem.
     var mapDataFromFile: Data? {
-        return try? Data(contentsOf: mapSaveURL)
+        return try? Data(contentsOf: self.getSaveURL(name: self.worldName))
     }
     
     /// - Tag: RunWithWorldMap
@@ -318,9 +329,10 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     /// - Tag: PlaceObject
     @IBAction func handleSceneTap(_ sender: UITapGestureRecognizer) {
         // Disable placing objects when the session is still relocalizing
-        print("tap detected")
+        if !isInDecorationMode {
+            return
+        }
         if isRelocalizingMap && virtualObjectAnchor == nil {
-            print("fail 1")
             return
         }
         // Hit test to find a place for a virtual object.
@@ -328,10 +340,9 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
             .hitTest(sender.location(in: sceneView), types: [.existingPlaneUsingGeometry, .estimatedHorizontalPlane])
             .first
             else {
-                print("fail 3")
                 return
             }
-        
+
         // Remove exisitng anchor and add new anchor
         if let existingAnchor = virtualObjectAnchor {
             sceneView.session.remove(anchor: existingAnchor)
@@ -352,6 +363,36 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         
         return referenceNode
     }()
+    
+    func removeSavedWorldByName(name: String) {
+        let fileManager = FileManager.default
+        let dirPath = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0] as NSString
+        let filePath = dirPath.appendingPathComponent(name + self.saveFileExtension)
+        try! fileManager.removeItem(atPath: filePath)
+    }
+    
+    @IBAction func removeAllSavedWorlds() {
+        for name in readSavedWorldNames() {
+            removeSavedWorldByName(name: name)
+        }
+    }
+    
+    func onboardNewUser() {
+        let semaphore = DispatchSemaphore(value: 1)
+        let alert = UIAlertController(title: "Welcome to \(gameName)! Please name your world.",
+            message: "", preferredStyle: .alert)
+        let defaultName = "DK's Forest"
+        alert.addTextField { (textField) in textField.placeholder = defaultName }
+        alert.addAction(UIAlertAction(title: "Confirm", style: .default, handler: { [weak alert] (_) in
+            guard let textField = alert?.textFields?[0], let userText = textField.text else { return }
+            self.worldName = userText.count > 0 ? userText : defaultName
+            self.saveExperience(self.saveExperienceButton)
+            print(self.worldName)
+            semaphore.signal()
+        }))
+    
+        self.present(alert, animated: true, completion: nil)
+    }
     
 }
 
