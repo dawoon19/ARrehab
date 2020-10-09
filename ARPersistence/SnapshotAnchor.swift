@@ -16,9 +16,9 @@ class SnapshotAnchor: ARAnchor {
         guard let frame = view.session.currentFrame
             else { return nil }
         
-        let image = CIImage(cvPixelBuffer: frame.capturedImage)
+        let image = CIImage(cgImage: view.snapshot().cgImage!)
         let orientation = CGImagePropertyOrientation(cameraOrientation: UIDevice.current.orientation)
-        
+
         let context = CIContext(options: [.useSoftwareRenderer: false])
         guard let data = context.jpegRepresentation(of: image.oriented(orientation),
                                                     colorSpace: CGColorSpaceCreateDeviceRGB(),

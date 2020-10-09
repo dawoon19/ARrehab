@@ -26,15 +26,6 @@
                             <stackView opaque="NO" contentMode="scaleToFill" distribution="fillProportionally" alignment="center" spacing="8" translatesAutoresizingMaskIntoConstraints="NO" id="7n1-lm-7Eq">
                                 <rect key="frame" x="613.5" y="950" width="139" height="34"/>
                                 <subviews>
-                                    <button hidden="YES" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="6uy-QG-6J9" customClass="RoundedButton" customModule="ARPersistence" customModuleProvider="target">
-                                        <rect key="frame" x="0.0" y="0.0" width="0.0" height="34"/>
-                                        <fontDescription key="fontDescription" type="system" pointSize="15"/>
-                                        <inset key="contentEdgeInsets" minX="13" minY="8" maxX="13" maxY="8"/>
-                                        <state key="normal" title="Load Experience"/>
-                                        <connections>
-                                            <action selector="loadExperience:" destination="7dh-A0-qGE" eventType="touchUpInside" id="Xac-0y-p4U"/>
-                                        </connections>
-                                    </button>
                                     <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="gad-7G-M17" customClass="RoundedButton" customModule="ARPersistence" customModuleProvider="target">
                                         <rect key="frame" x="0.0" y="0.0" width="139" height="34"/>
                                         <fontDescription key="fontDescription" type="system" pointSize="15"/>
@@ -168,12 +159,11 @@
                     <connections>
                         <outlet property="decorationModeButton" destination="lBX-2s-bw8" id="3hO-6s-RCe"/>
                         <outlet property="discardDecorButton" destination="Krh-OU-rqv" id="6IN-Yr-cm1"/>
-                        <outlet property="loadExperienceButton" destination="6uy-QG-6J9" id="ztL-gU-Vqq"/>
                         <outlet property="saveExperienceButton" destination="gad-7G-M17" id="yj3-eb-u44"/>
                         <outlet property="sceneView" destination="BrB-h1-WRS" id="sgr-g8-kdG"/>
                         <outlet property="sessionInfoLabel" destination="hCE-IA-wLv" id="fqx-0o-IdX"/>
                         <outlet property="sessionInfoView" destination="37h-bD-Iyn" id="e6g-gN-reW"/>
-                        <outlet property="snapshotThumbnail" destination="f6U-ce-g4P" id="we1-gb-AkX"/>
+                        <outlet property="snapshotThumbnail" destination="f6U-ce-g4P" id="hJ0-vc-6e6"/>
                         <outlet property="statusLabel" destination="aD6-EU-VHg" id="XNR-tR-am9"/>
                     </connections>
                 </viewController>

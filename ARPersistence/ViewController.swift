@@ -16,17 +16,18 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     @IBOutlet weak var sessionInfoLabel: UILabel!
     @IBOutlet weak var sceneView: ARSCNView!
     @IBOutlet weak var saveExperienceButton: UIButton!
-    @IBOutlet weak var loadExperienceButton: UIButton!
     @IBOutlet weak var decorationModeButton: UIButton!
     @IBOutlet weak var discardDecorButton: UIButton!
     @IBOutlet weak var statusLabel: UILabel!
     @IBOutlet weak var snapshotThumbnail: UIImageView!
     
-    var worldName: String = "_"
+    var worldName: String = ""
     var gameName: String = "dragon-game"
     var saveFileExtension: String = ".arexperience"
     var isInDecorationMode: Bool = false
-    
+    var worldHasBeenSaved: Bool = false
+    var initLock = NSLock()
+
     // MARK: - View Life Cycle
     
     // Lock the orientation of the app to the orientation in which it is launched
@@ -58,16 +59,17 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         // Start the view's AR session.
         
         exitDecorationMode()
+//        removeAllSavedWorlds()
         
         let savedWorldNames = readSavedWorldNames()
         if savedWorldNames.count == 0 {
             onboardNewUser()
+        } else {
+            selectWorldToLoad()
         }
-
+        
         sceneView.session.delegate = self
         sceneView.session.run(defaultConfiguration)
-
-        sceneView.debugOptions = [ .showFeaturePoints ]
 
         // Prevent the screen from being dimmed after a while as users will likely
         // have long periods of interaction without touching the screen or buttons.
@@ -99,12 +101,32 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     // MARK: - ARSessionDelegate
     
     func session(_ session: ARSession, cameraDidChangeTrackingState camera: ARCamera) {
-        updateSessionInfoLabel(for: session.currentFrame!, trackingState: camera.trackingState)
+        switch camera.trackingState.description {
+        case "Relocalizing":
+            self.snapshotThumbnail.isHidden = false
+        default:
+            self.snapshotThumbnail.isHidden = true
+        }
     }
     
     /// - Tag: CheckMappingStatus
     func session(_ session: ARSession, didUpdate frame: ARFrame) {
         // Enable Save button only when the mapping status is good and an object has been placed
+        
+        if self.worldName.count == 0 { return }
+        
+        initLock.lock()
+        if !self.worldHasBeenSaved {
+            switch frame.worldMappingStatus {
+            case .extending, .mapped:
+                self.saveExperience(self.saveExperienceButton)
+                self.enterMainScene()
+            default:
+                break
+            }
+        }
+        initLock.unlock()
+
         if isInDecorationMode {
             switch frame.worldMappingStatus {
             case .extending, .mapped:
@@ -113,12 +135,11 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
             default:
                 saveExperienceButton.isEnabled = false
             }
-            statusLabel.text = """
-            Mapping: \(frame.worldMappingStatus.description)
-            Tracking: \(frame.camera.trackingState.description)
-            """
-            updateSessionInfoLabel(for: frame, trackingState: frame.camera.trackingState)
         }
+        statusLabel.text = """
+        Mapping: \(frame.worldMappingStatus.description)
+        Tracking: \(frame.camera.trackingState.description)
+        """
     }
     
     // MARK: - ARSessionObserver
@@ -192,10 +213,11 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     
     /// - Tag: GetWorldMap
     @IBAction func saveExperience(_ button: UIButton) {
+        print(self.worldName)
         sceneView.session.getCurrentWorldMap { worldMap, error in
             guard let map = worldMap
                 else { self.showAlert(title: "Can't get current world map", message: error!.localizedDescription); return }
-            
+
             // Add a snapshot image indicating where the map was captured.
             guard let snapshotAnchor = SnapshotAnchor(capturing: self.sceneView)
                 else { fatalError("Can't take snapshot") }
@@ -204,10 +226,6 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
             do {
                 let data = try NSKeyedArchiver.archivedData(withRootObject: map, requiringSecureCoding: true)
                 try data.write(to: self.getSaveURL(name: self.worldName), options: [.atomic])
-                DispatchQueue.main.async {
-                    self.loadExperienceButton.isHidden = false
-                    self.loadExperienceButton.isEnabled = true
-                }
             } catch {
                 fatalError("Can't save map: \(error.localizedDescription)")
             }
@@ -218,18 +236,13 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     @IBAction func enterDecorationMode(_ button: UIButton) {
         isInDecorationMode = true
         saveExperienceButton.isHidden = false
-        loadExperienceButton.isHidden = false
         discardDecorButton.isHidden = false
         discardDecorButton.isEnabled = true
-        if mapDataFromFile != nil {
-            self.loadExperienceButton.isHidden = false
-        }
     }
 
     @IBAction func exitDecorationMode() {
         decorationModeButton.isHidden = false
         saveExperienceButton.isHidden = true
-        loadExperienceButton.isHidden = true
         isInDecorationMode = false
         discardDecorButton.isHidden = true
         discardDecorButton.isEnabled = false
@@ -241,7 +254,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     }
     
     /// - Tag: RunWithWorldMap
-    @IBAction func loadExperience(_ button: UIButton) {
+    func loadExperience() {
         
         /// - Tag: ReadWorldMap
         let worldMap: ARWorldMap = {
@@ -263,6 +276,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         } else {
             print("No snapshot image in world map")
         }
+        
         // Remove the snapshot anchor from the world map since we do not need it in the scene.
         worldMap.anchors.removeAll(where: { $0 is SnapshotAnchor })
         
@@ -287,43 +301,11 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     
     @IBAction func resetTracking(_ sender: UIButton?) {
         sceneView.session.run(defaultConfiguration, options: [.resetTracking, .removeExistingAnchors])
+
         isRelocalizingMap = false
         virtualObjectAnchor = nil
     }
-    
-    private func updateSessionInfoLabel(for frame: ARFrame, trackingState: ARCamera.TrackingState) {
-        // Update the UI to provide feedback on the state of the AR experience.
-        let message: String
-        
-        snapshotThumbnail.isHidden = true
-        switch (trackingState, frame.worldMappingStatus) {
-        case (.normal, .mapped),
-             (.normal, .extending):
-            if frame.anchors.contains(where: { $0.name == virtualObjectAnchorName }) {
-                // User has placed an object in scene and the session is mapped, prompt them to save the experience
-                message = "Tap 'Save Experience' to save the current map."
-            } else {
-                message = "Tap on the screen to place an object."
-            }
-            
-        case (.normal, _) where mapDataFromFile != nil && !isRelocalizingMap:
-            message = "Move around to map the environment or tap 'Load Experience' to load a saved experience."
-            
-        case (.normal, _) where mapDataFromFile == nil:
-            message = "Move around to map the environment."
-            
-        case (.limited(.relocalizing), _) where isRelocalizingMap:
-            message = "Move your device to the location shown in the image."
-            snapshotThumbnail.isHidden = false
-            
-        default:
-            message = trackingState.localizedFeedback
-        }
-        
-        sessionInfoLabel.text = message
-        sessionInfoView.isHidden = message.isEmpty
-    }
-    
+
     // MARK: - Placing AR Content
     
     /// - Tag: PlaceObject
@@ -376,9 +358,8 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
             removeSavedWorldByName(name: name)
         }
     }
-    
+
     func onboardNewUser() {
-        let semaphore = DispatchSemaphore(value: 1)
         let alert = UIAlertController(title: "Welcome to \(gameName)! Please name your world.",
             message: "", preferredStyle: .alert)
         let defaultName = "DK's Forest"
@@ -386,12 +367,52 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         alert.addAction(UIAlertAction(title: "Confirm", style: .default, handler: { [weak alert] (_) in
             guard let textField = alert?.textFields?[0], let userText = textField.text else { return }
             self.worldName = userText.count > 0 ? userText : defaultName
-            self.saveExperience(self.saveExperienceButton)
             print(self.worldName)
-            semaphore.signal()
+            self.worldHasBeenSaved = false
+            self.sessionInfoLabel.text = "The World has not been saved. Move your camera around."
+            self.sceneView.debugOptions = [ .showFeaturePoints ]
+            
+            self.decorationModeButton.isHidden = true
         }))
     
         self.present(alert, animated: true, completion: nil)
+    }
+    
+    func selectWorldToLoad() {
+        let savedWorlds = readSavedWorldNames()
+        print(savedWorlds)
+        let alert = UIAlertController(title: "Welcome back to \(gameName)! Please select a world to load, or start a new world by entering '__NewWorld__'.",
+        message: "", preferredStyle: .alert)
+        let defaultText = savedWorlds[0]
+        print(savedWorlds)
+        alert.addTextField { (textField) in textField.placeholder = defaultText }
+        alert.addAction(UIAlertAction(title: "Confirm", style: .default, handler: { [weak alert] (_) in
+            guard let textField = alert?.textFields?[0], let userText = textField.text else { return }
+    
+            let userEntry = userText.count > 0 ? userText : defaultText
+            if userEntry == "__NewWorld__" {
+                self.onboardNewUser()
+            } else {
+                for savedWorld in savedWorlds {
+                    if userEntry == savedWorld {
+                        self.worldName = userEntry
+                        print(self.worldName)
+                        self.loadExperience()
+                        self.enterMainScene()
+                        break
+                    }
+                }
+            }
+        }))
+        
+        self.present(alert, animated: true, completion: nil)
+    }
+
+    func enterMainScene() {
+        self.worldHasBeenSaved = true
+        self.sceneView.debugOptions = []
+        self.sessionInfoLabel.text = "Welcome to \(self.worldName)! Decorate your space or play a minigame."
+        self.decorationModeButton.isHidden = false
     }
     
 }
