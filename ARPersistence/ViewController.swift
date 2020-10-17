@@ -18,6 +18,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     @IBOutlet weak var saveExperienceButton: UIButton!
     @IBOutlet weak var decorationModeButton: UIButton!
     @IBOutlet weak var discardDecorButton: UIButton!
+    @IBOutlet weak var removeAllWorldsButton: UIButton!
     @IBOutlet weak var statusLabel: UILabel!
     @IBOutlet weak var snapshotThumbnail: UIImageView!
     
@@ -26,6 +27,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     var saveFileExtension: String = ".arexperience"
     var isInDecorationMode: Bool = false
     var worldHasBeenSaved: Bool = false
+    var isCreatingNewWorld: Bool = false
     var initLock = NSLock()
 
     // MARK: - View Life Cycle
@@ -55,26 +57,19 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
                 determine whether to show UI for launching AR experiences.
             """) // For details, see https://developer.apple.com/documentation/arkit
         }
-        
+
         // Start the view's AR session.
-        
+
         exitDecorationMode()
+        self.decorationModeButton.isHidden = true
 //        removeAllSavedWorlds()
-        
+
         let savedWorldNames = readSavedWorldNames()
         if savedWorldNames.count == 0 {
             onboardNewUser()
         } else {
             selectWorldToLoad()
         }
-        
-        sceneView.session.delegate = self
-        sceneView.session.run(defaultConfiguration)
-
-        // Prevent the screen from being dimmed after a while as users will likely
-        // have long periods of interaction without touching the screen or buttons.
-        UIApplication.shared.isIdleTimerDisabled = true
-        
     }
     
     override func viewWillDisappear(_ animated: Bool) {
@@ -116,7 +111,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         if self.worldName.count == 0 { return }
         
         initLock.lock()
-        if !self.worldHasBeenSaved {
+        if self.isCreatingNewWorld && !self.worldHasBeenSaved {
             switch frame.worldMappingStatus {
             case .extending, .mapped:
                 self.saveExperience(self.saveExperienceButton)
@@ -125,6 +120,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
                 break
             }
         }
+        
         initLock.unlock()
 
         if isInDecorationMode {
@@ -248,6 +244,11 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         discardDecorButton.isEnabled = false
     }
     
+    @IBAction func discardDecoration() {
+        loadExperience()
+        exitDecorationMode()
+    }
+    
     // Called opportunistically to verify that map data can be loaded from filesystem.
     var mapDataFromFile: Data? {
         return try? Data(contentsOf: self.getSaveURL(name: self.worldName))
@@ -352,7 +353,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         let filePath = dirPath.appendingPathComponent(name + self.saveFileExtension)
         try! fileManager.removeItem(atPath: filePath)
     }
-    
+
     @IBAction func removeAllSavedWorlds() {
         for name in readSavedWorldNames() {
             removeSavedWorldByName(name: name)
@@ -360,6 +361,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     }
 
     func onboardNewUser() {
+        self.isCreatingNewWorld = true
         let alert = UIAlertController(title: "Welcome to \(gameName)! Please name your world.",
             message: "", preferredStyle: .alert)
         let defaultName = "DK's Forest"
@@ -373,15 +375,15 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
             self.sceneView.debugOptions = [ .showFeaturePoints ]
             
             self.decorationModeButton.isHidden = true
+            self.runSession()
         }))
     
         self.present(alert, animated: true, completion: nil)
     }
-    
+
     func selectWorldToLoad() {
         let savedWorlds = readSavedWorldNames()
-        print(savedWorlds)
-        let alert = UIAlertController(title: "Welcome back to \(gameName)! Please select a world to load, or start a new world by entering '__NewWorld__'.",
+        let alert = UIAlertController(title: "Welcome back to \(gameName)! Please select a world to load, or start a new world by entering 'New'.",
         message: "", preferredStyle: .alert)
         let defaultText = savedWorlds[0]
         print(savedWorlds)
@@ -390,13 +392,13 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
             guard let textField = alert?.textFields?[0], let userText = textField.text else { return }
     
             let userEntry = userText.count > 0 ? userText : defaultText
-            if userEntry == "__NewWorld__" {
+            if userEntry == "New" {
                 self.onboardNewUser()
             } else {
                 for savedWorld in savedWorlds {
                     if userEntry == savedWorld {
                         self.worldName = userEntry
-                        print(self.worldName)
+                        self.runSession()
                         self.loadExperience()
                         self.enterMainScene()
                         break
@@ -415,6 +417,13 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         self.decorationModeButton.isHidden = false
     }
     
+    func runSession() {
+        sceneView.session.delegate = self
+        sceneView.session.run(defaultConfiguration)
+
+        // Prevent the screen from being dimmed after a while as users will likely
+        // have long periods of interaction without touching the screen or buttons.
+        UIApplication.shared.isIdleTimerDisabled = true
+    }
+
 }
-
-

@@ -15,12 +15,15 @@ class SnapshotAnchor: ARAnchor {
     convenience init?(capturing view: ARSCNView) {
         guard let frame = view.session.currentFrame
             else { return nil }
+
+        let rotation = atan2(view.transform.b, view.transform.a)
+        print(rotation, view.transform.b, view.transform.a)
         
         let image = CIImage(cgImage: view.snapshot().cgImage!)
         let orientation = CGImagePropertyOrientation(cameraOrientation: UIDevice.current.orientation)
 
         let context = CIContext(options: [.useSoftwareRenderer: false])
-        guard let data = context.jpegRepresentation(of: image.oriented(orientation),
+        guard let data = context.jpegRepresentation(of: image,
                                                     colorSpace: CGColorSpaceCreateDeviceRGB(),
                                                     options: [kCGImageDestinationLossyCompressionQuality as CIImageRepresentationOption: 0.7])
             else { return nil }
