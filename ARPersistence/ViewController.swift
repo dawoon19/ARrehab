@@ -28,6 +28,8 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     var isInDecorationMode: Bool = false
     var worldHasBeenSaved: Bool = false
     var isCreatingNewWorld: Bool = false
+    var isRelocalizing: Bool = false
+    var worldHasLoaded: Bool = false
     var initLock = NSLock()
 
     // MARK: - View Life Cycle
@@ -99,8 +101,13 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         switch camera.trackingState.description {
         case "Relocalizing":
             self.snapshotThumbnail.isHidden = false
+            self.isRelocalizing = true
         default:
             self.snapshotThumbnail.isHidden = true
+            if self.isRelocalizing && !self.worldHasLoaded {
+                self.worldHasLoaded = true
+                enterMainScene()
+            }
         }
     }
     
@@ -120,7 +127,6 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
                 break
             }
         }
-        
         initLock.unlock()
 
         if isInDecorationMode {
@@ -400,7 +406,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
                         self.worldName = userEntry
                         self.runSession()
                         self.loadExperience()
-                        self.enterMainScene()
+//                        self.enterMainScene()
                         break
                     }
                 }
