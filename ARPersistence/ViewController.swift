@@ -8,13 +8,17 @@ Main view controller for the AR experience.
 import UIKit
 import SceneKit
 import ARKit
+import RealityKit
 
+@available(iOS 13.4, *)
+@available(iOS 13.4, *)
 class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     // MARK: - IBOutlets
     
     @IBOutlet weak var sessionInfoView: UIView!
     @IBOutlet weak var sessionInfoLabel: UILabel!
-    @IBOutlet weak var sceneView: ARSCNView!
+    //@IBOutlet weak var sceneView: ARSCNView!
+    @IBOutlet var arView: ARView!
     @IBOutlet weak var saveExperienceButton: UIButton!
     @IBOutlet weak var loadExperienceButton: UIButton!
     @IBOutlet weak var decorationModeButton: UIButton!
@@ -24,17 +28,50 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     
     var isInDecorationMode: Bool = false
     
+    let coachingOverlay = ARCoachingOverlayView()
+    
+    
     // MARK: - View Life Cycle
     
     // Lock the orientation of the app to the orientation in which it is launched
     override var shouldAutorotate: Bool {
         return false
     }
-
+    
+    
+    /// - Tag: ViewDidLoad
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        arView.session.delegate = self
+        
+ 
+        
         // Read in any already saved map to see if we can load one.
+        
+        // Turn on physics for the scene reconstruction's mesh.
+        arView.environment.sceneUnderstanding.options.insert(.physics)
+        
+        // Turn on occlusion from the scene reconstruction's mesh.
+        arView.environment.sceneUnderstanding.options.insert(.occlusion)
+        
+        
+        // Display a debug visualization of the mesh.
+        arView.debugOptions.insert(.showSceneUnderstanding)
+        
+        // Manually configure what kind of AR session to run since
+        // ARView on its own does not turn on mesh classification.
+        arView.automaticallyConfigureSession = false
+        
+        let configuration = ARWorldTrackingConfiguration()
+        configuration.sceneReconstruction = .meshWithClassification
+
+        configuration.environmentTexturing = .automatic
+        arView.session.run(configuration)
+        
+        
+        
+        
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -56,14 +93,16 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         
         exitDecorationMode()
         
-        sceneView.session.delegate = self
-        sceneView.session.run(defaultConfiguration)
+        //arView.session.delegate = self
+        //arView.session.run(defaultConfiguration)
         
-        sceneView.debugOptions = [ .showFeaturePoints ]
+        //arView.debugOptions = [ .showFeaturePoints ]
         
         // Prevent the screen from being dimmed after a while as users will likely
         // have long periods of interaction without touching the screen or buttons.
         UIApplication.shared.isIdleTimerDisabled = true
+        
+    
         
     }
     
@@ -71,7 +110,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         super.viewWillDisappear(animated)
         
         // Pause the view's AR session.
-        sceneView.session.pause()
+        arView.session.pause()
     }
     
     // MARK: - ARSCNViewDelegate
@@ -181,14 +220,14 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     
     /// - Tag: GetWorldMap
     @IBAction func saveExperience(_ button: UIButton) {
-        sceneView.session.getCurrentWorldMap { worldMap, error in
+        arView.session.getCurrentWorldMap { worldMap, error in
             guard let map = worldMap
                 else { self.showAlert(title: "Can't get current world map", message: error!.localizedDescription); return }
             
             // Add a snapshot image indicating where the map was captured.
-            guard let snapshotAnchor = SnapshotAnchor(capturing: self.sceneView)
-                else { fatalError("Can't take snapshot") }
-            map.anchors.append(snapshotAnchor)
+//            guard let snapshotAnchor = SnapshotAnchor(capturing: self.arView)
+//                else { fatalError("Can't take snapshot") }
+//            map.anchors.append(snapshotAnchor)
             
             do {
                 let data = try NSKeyedArchiver.archivedData(withRootObject: map, requiringSecureCoding: true)
@@ -257,7 +296,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         
         let configuration = self.defaultConfiguration // this app's standard world tracking settings
         configuration.initialWorldMap = worldMap
-        sceneView.session.run(configuration, options: [.resetTracking, .removeExistingAnchors])
+        arView.session.run(configuration, options: [.resetTracking, .removeExistingAnchors])
 
         isRelocalizingMap = true
         virtualObjectAnchor = nil
@@ -269,13 +308,13 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
 
     var defaultConfiguration: ARWorldTrackingConfiguration {
         let configuration = ARWorldTrackingConfiguration()
-        configuration.planeDetection = .horizontal
+        configuration.planeDetection = [.horizontal, .vertical]
         configuration.environmentTexturing = .automatic
         return configuration
     }
     
     @IBAction func resetTracking(_ sender: UIButton?) {
-        sceneView.session.run(defaultConfiguration, options: [.resetTracking, .removeExistingAnchors])
+        arView.session.run(defaultConfiguration, options: [.resetTracking, .removeExistingAnchors])
         isRelocalizingMap = false
         virtualObjectAnchor = nil
     }
@@ -321,12 +360,19 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         print("tap detected")
         if isRelocalizingMap && virtualObjectAnchor == nil {
             print("fail 1")
+
             return
         }
-        // Hit test to find a place for a virtual object.
-        guard let hitTestResult = sceneView
-            .hitTest(sender.location(in: sceneView), types: [.existingPlaneUsingGeometry, .estimatedHorizontalPlane])
-            .first
+        // Raycast test to find a place for a virtual object.
+        let taplocation = sender.location(in: arView)
+        //let raycastResult = arView
+        if let result = arView.raycast(from: taplocation, allowing: .estimatedPlane, alignment: .any).first{
+            virtualObjectAnchor = ARAnchor(name: virtualObjectAnchorName, transform: result.worldTransform)
+            arView.session.add(anchor: virtualObjectAnchor!)
+            print("load object")
+        }
+                //.raycast(sender.location(in: arView), types: [.existingPlaneUsingGeometry, .estimatedHorizontalPlane, .estimatedVerticalPlane])
+            //.first
             else {
                 print("fail 3")
                 return
@@ -334,10 +380,14 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         
         // Remove exisitng anchor and add new anchor
         if let existingAnchor = virtualObjectAnchor {
-            sceneView.session.remove(anchor: existingAnchor)
+            arView.session.remove(anchor: existingAnchor)
+            print("remove existing anchor")
         }
-        virtualObjectAnchor = ARAnchor(name: virtualObjectAnchorName, transform: hitTestResult.worldTransform)
-        sceneView.session.add(anchor: virtualObjectAnchor!)
+//            virtualObjectAnchor = ARAnchor(name: virtualObjectAnchorName, transform: result.worldTransform)
+//            arView.session.add(anchor: virtualObjectAnchor!)
+//            print("load object")
+       
+    
     }
 
     var virtualObjectAnchor: ARAnchor?
