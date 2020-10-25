@@ -114,3 +114,19 @@ extension CGImagePropertyOrientation {
         }
     }
 }
+
+func getCoordsString(transform: simd_float4x4) -> String {
+    let position = transform.columns.3
+//    let rotation = transform[0][0]
+    let x = "x: " + String(format: "%.2f", position.x) + ","
+    let y = "y: " + String(format: "%.2f", position.y) + ","
+    let z = "z: " + String(format: "%.2f", position.z) + ","
+    return x + y + z
+}
+
+func getRotationString(eulerAngles: simd_float3) -> String {
+    let pitch = "pitch: " + String(format: "%.2f", eulerAngles.x)
+    let yaw = "yaw: " + String(format: "%.2f", eulerAngles.y)
+    let roll = "roll: " + String(format: "%.2f", eulerAngles.z)
+    return pitch + yaw + roll
+}
