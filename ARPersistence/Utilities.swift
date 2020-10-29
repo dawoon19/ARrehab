@@ -117,7 +117,6 @@ extension CGImagePropertyOrientation {
 
 func getCoordsString(transform: simd_float4x4) -> String {
     let position = transform.columns.3
-//    let rotation = transform[0][0]
     let x = "x: " + String(format: "%.2f", position.x) + ","
     let y = "y: " + String(format: "%.2f", position.y) + ","
     let z = "z: " + String(format: "%.2f", position.z) + ","

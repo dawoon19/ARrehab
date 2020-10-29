@@ -139,8 +139,10 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
             }
         }
         statusLabel.text = """
-        Mapping: \(frame.worldMappingStatus.description)
-        Tracking: \(frame.camera.trackingState.description)
+        Translation: \(getCoordsString(transform: frame.camera.transform))
+        Rotation: \(getRotationString(eulerAngles: frame.camera.eulerAngles))
+        Tea Cup Position: \(virtualObjectAnchor == nil ? "" :
+        getCoordsString(transform: virtualObjectAnchor!.transform))
         """
     }
     
