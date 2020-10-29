@@ -130,6 +130,14 @@
                                     <action selector="enterDecorationMode:" destination="7dh-A0-qGE" eventType="touchUpInside" id="g2C-Gz-Zs0"/>
                                 </connections>
                             </button>
+                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="J8d-Lo-lIv" customClass="RoundedButton" customModule="ARPersistence" customModuleProvider="target">
+                                <rect key="frame" x="1169" y="59" width="153" height="30"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <state key="normal" title="Reset Worlds"/>
+                                <connections>
+                                    <action selector="removeAllSavedWorlds" destination="7dh-A0-qGE" eventType="touchUpInside" id="yoU-Y5-SZD"/>
+                                </connections>
+                            </button>
                         </subviews>
                         <color key="backgroundColor" white="0.0" alpha="1" colorSpace="calibratedWhite"/>
                         <constraints>
@@ -159,6 +167,7 @@
                     <connections>
                         <outlet property="decorationModeButton" destination="lBX-2s-bw8" id="3hO-6s-RCe"/>
                         <outlet property="discardDecorButton" destination="Krh-OU-rqv" id="6IN-Yr-cm1"/>
+                        <outlet property="removeAllWorldsButton" destination="J8d-Lo-lIv" id="Y6i-ef-O51"/>
                         <outlet property="saveExperienceButton" destination="gad-7G-M17" id="yj3-eb-u44"/>
                         <outlet property="sceneView" destination="BrB-h1-WRS" id="sgr-g8-kdG"/>
                         <outlet property="sessionInfoLabel" destination="hCE-IA-wLv" id="fqx-0o-IdX"/>
