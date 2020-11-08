@@ -17,6 +17,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     @IBOutlet weak var sceneView: ARSCNView!
     @IBOutlet weak var saveExperienceButton: UIButton!
     @IBOutlet weak var decorationModeButton: UIButton!
+    @IBOutlet weak var exitDecorationModeButton: UIButton!
     @IBOutlet weak var discardDecorButton: UIButton!
     @IBOutlet weak var removeAllWorldsButton: UIButton!
     @IBOutlet weak var statusLabel: UILabel!
@@ -31,12 +32,15 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     var isRelocalizing: Bool = false
     var worldHasLoaded: Bool = false
     var initLock = NSLock()
+    
+    var virtualObjectNodes: [SCNNode] = []
+    var unsavedVirtualObjectnodes: [SCNNode] = []
 
     // MARK: - View Life Cycle
     
     // Lock the orientation of the app to the orientation in which it is launched
     override var shouldAutorotate: Bool {
-        return false
+        return true
     }
 
     override func viewDidLoad() {
@@ -62,11 +66,12 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
 
         // Start the view's AR session.
 
-        exitDecorationMode()
+        prepareMainScene()
         self.decorationModeButton.isHidden = true
 //        removeAllSavedWorlds()
 
         let savedWorldNames = readSavedWorldNames()
+        self.virtualObjectNodes = []
         if savedWorldNames.count == 0 {
             onboardNewUser()
         } else {
@@ -85,14 +90,17 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     
     /// - Tag: RestoreVirtualContent
     func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
-        guard anchor.name == virtualObjectAnchorName
-            else { return }
-        
-        // save the reference to the virtual object anchor when the anchor is added from relocalizing
-        if virtualObjectAnchor == nil {
-            virtualObjectAnchor = anchor
+//        guard anchor.name == virtualObjectAnchorName
+//            else { return }
+        if let name = anchor.name {
+            if name.contains(virtualObjectAnchorName) {
+                let newNode = getNewVirtualObjectInstance()
+                node.addChildNode(newNode)
+                node.name = virtualObjectNodeName
+                self.virtualObjectNodes.append(newNode)
+                self.unsavedVirtualObjectnodes.append(newNode)
+            }
         }
-        node.addChildNode(virtualObject)
     }
     
     // MARK: - ARSessionDelegate
@@ -120,7 +128,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         initLock.lock()
         if self.isCreatingNewWorld && !self.worldHasBeenSaved {
             switch frame.worldMappingStatus {
-            case .extending, .mapped:
+            case .mapped:
                 self.saveExperience(self.saveExperienceButton)
                 self.enterMainScene()
             default:
@@ -132,8 +140,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         if isInDecorationMode {
             switch frame.worldMappingStatus {
             case .extending, .mapped:
-                saveExperienceButton.isEnabled =
-                    virtualObjectAnchor != nil && frame.anchors.contains(virtualObjectAnchor!)
+                saveExperienceButton.isEnabled = true
             default:
                 saveExperienceButton.isEnabled = false
             }
@@ -232,7 +239,8 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
                 fatalError("Can't save map: \(error.localizedDescription)")
             }
         }
-        exitDecorationMode()
+        self.unsavedVirtualObjectnodes = []
+//        exitDecorationMode()
     }
     
     @IBAction func enterDecorationMode(_ button: UIButton) {
@@ -240,19 +248,44 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         saveExperienceButton.isHidden = false
         discardDecorButton.isHidden = false
         discardDecorButton.isEnabled = true
+        decorationModeButton.isHidden = true
+        exitDecorationModeButton.isHidden = false
     }
 
     @IBAction func exitDecorationMode() {
+        discardDecoration()
         decorationModeButton.isHidden = false
         saveExperienceButton.isHidden = true
         isInDecorationMode = false
         discardDecorButton.isHidden = true
         discardDecorButton.isEnabled = false
+        exitDecorationModeButton.isHidden = true
     }
     
     @IBAction func discardDecoration() {
-        loadExperience()
-        exitDecorationMode()
+//        loadExperience()
+        for node in self.unsavedVirtualObjectnodes {
+            self.removeNodeFromCache(node: node)
+            node.removeFromParentNode()
+        }
+//        exitDecorationMode()
+    }
+    
+    func removeNodeFromCache(node : SCNNode) {
+        print(self.virtualObjectNodes.count)
+        if let index = self.virtualObjectNodes.firstIndex(of: node) {
+            self.virtualObjectNodes.remove(at: index)
+        }
+        print(self.virtualObjectNodes.count)
+    }
+    
+    func prepareMainScene() {
+        decorationModeButton.isHidden = false
+        saveExperienceButton.isHidden = true
+        isInDecorationMode = false
+        discardDecorButton.isHidden = true
+        discardDecorButton.isEnabled = false
+        exitDecorationModeButton.isHidden = true
     }
     
     // Called opportunistically to verify that map data can be loaded from filesystem.
@@ -289,10 +322,9 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         
         let configuration = self.defaultConfiguration // this app's standard world tracking settings
         configuration.initialWorldMap = worldMap
+        self.virtualObjectNodes = []
         sceneView.session.run(configuration, options: [.resetTracking, .removeExistingAnchors])
 
-        isRelocalizingMap = true
-        virtualObjectAnchor = nil
     }
 
     // MARK: - AR session management
@@ -310,7 +342,6 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         sceneView.session.run(defaultConfiguration, options: [.resetTracking, .removeExistingAnchors])
 
         isRelocalizingMap = false
-        virtualObjectAnchor = nil
     }
 
     // MARK: - Placing AR Content
@@ -319,9 +350,6 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     @IBAction func handleSceneTap(_ sender: UITapGestureRecognizer) {
         // Disable placing objects when the session is still relocalizing
         if !isInDecorationMode {
-            return
-        }
-        if isRelocalizingMap && virtualObjectAnchor == nil {
             return
         }
         // Hit test to find a place for a virtual object.
@@ -333,25 +361,34 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
             }
 
         // Remove exisitng anchor and add new anchor
-        if let existingAnchor = virtualObjectAnchor {
-            sceneView.session.remove(anchor: existingAnchor)
-        }
-        virtualObjectAnchor = ARAnchor(name: virtualObjectAnchorName, transform: hitTestResult.worldTransform)
-        sceneView.session.add(anchor: virtualObjectAnchor!)
+//        if let existingAnchor = virtualObjectAnchor {
+//            sceneView.session.remove(anchor: existingAnchor)
+//        }
+    
+        let virtualObjectAnchor = ARAnchor(name: virtualObjectAnchorName + String(self.virtualObjectNodes.count), transform: hitTestResult.worldTransform)
+        sceneView.session.add(anchor: virtualObjectAnchor)
+        print("added")
+//        sceneView.session.getCurrentWorldMap { worldMap, error in
+//            guard let map = worldMap
+//                else { self.showAlert(title: "Can't get current world map", message: error!.localizedDescription); return }
+//            print(map.anchors.count)
+//        }
     }
 
-    var virtualObjectAnchor: ARAnchor?
-    let virtualObjectAnchorName = "virtualObject"
-
-    var virtualObject: SCNNode = {
+//    var virtualObjectAnchor: ARAnchor?
+    let virtualObjectAnchorName = "VirtualObjectAnchor"
+    let virtualObjectNodeName = "VirtualObjectNode"
+    
+    func getNewVirtualObjectInstance() -> SCNNode {
         guard let sceneURL = Bundle.main.url(forResource: "cup", withExtension: "scn", subdirectory: "Assets.scnassets/cup"),
             let referenceNode = SCNReferenceNode(url: sceneURL) else {
                 fatalError("can't load virtual object")
         }
         referenceNode.load()
+        referenceNode.name = self.virtualObjectNodeName + String(self.virtualObjectNodes.count)
         
         return referenceNode
-    }()
+    }
     
     func removeSavedWorldByName(name: String) {
         let fileManager = FileManager.default
