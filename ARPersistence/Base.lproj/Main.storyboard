@@ -146,6 +146,14 @@
                                     <action selector="exitDecorationMode" destination="7dh-A0-qGE" eventType="touchUpInside" id="rO5-f7-Hpf"/>
                                 </connections>
                             </button>
+                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="0i3-mr-65o" customClass="RoundedButton" customModule="ARPersistence" customModuleProvider="target">
+                                <rect key="frame" x="1226" y="904" width="96" height="80"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <state key="normal" title="Button"/>
+                                <connections>
+                                    <action selector="nextObject" destination="7dh-A0-qGE" eventType="touchUpInside" id="Pp0-ni-KMT"/>
+                                </connections>
+                            </button>
                         </subviews>
                         <color key="backgroundColor" white="0.0" alpha="1" colorSpace="calibratedWhite"/>
                         <constraints>
@@ -176,6 +184,7 @@
                         <outlet property="decorationModeButton" destination="lBX-2s-bw8" id="3hO-6s-RCe"/>
                         <outlet property="discardDecorButton" destination="Krh-OU-rqv" id="6IN-Yr-cm1"/>
                         <outlet property="exitDecorationModeButton" destination="3en-SJ-qIz" id="TUA-X0-JIe"/>
+                        <outlet property="nextObjectButton" destination="0i3-mr-65o" id="8hh-V5-Yh4"/>
                         <outlet property="removeAllWorldsButton" destination="J8d-Lo-lIv" id="Y6i-ef-O51"/>
                         <outlet property="saveExperienceButton" destination="gad-7G-M17" id="yj3-eb-u44"/>
                         <outlet property="sceneView" destination="BrB-h1-WRS" id="sgr-g8-kdG"/>

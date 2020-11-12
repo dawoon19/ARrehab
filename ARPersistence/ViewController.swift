@@ -18,6 +18,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     @IBOutlet weak var saveExperienceButton: UIButton!
     @IBOutlet weak var decorationModeButton: UIButton!
     @IBOutlet weak var exitDecorationModeButton: UIButton!
+    @IBOutlet weak var nextObjectButton: UIButton!
     @IBOutlet weak var discardDecorButton: UIButton!
     @IBOutlet weak var removeAllWorldsButton: UIButton!
     @IBOutlet weak var statusLabel: UILabel!
@@ -26,6 +27,10 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     var worldName: String = ""
     var gameName: String = "dragon-game"
     var saveFileExtension: String = ".arexperience"
+    
+    var availableObjects: [String] = ["cup", "chair", "candle"]
+    var currentObjectIndex: Int = 0
+    
     var isInDecorationMode: Bool = false
     var worldHasBeenSaved: Bool = false
     var isCreatingNewWorld: Bool = false
@@ -78,6 +83,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         } else {
             selectWorldToLoad()
         }
+        updateNextObjectButtonLabel()
     }
     
     override func viewWillDisappear(_ animated: Bool) {
@@ -91,11 +97,10 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     
     /// - Tag: RestoreVirtualContent
     func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
-//        guard anchor.name == virtualObjectAnchorName
-//            else { return }
         if let name = anchor.name {
             if name.contains(virtualObjectAnchorName) {
-                let newNode = getNewVirtualObjectInstance()
+                let nodeTypeIndex = Int(name.components(separatedBy: " ")[1])
+                let newNode = getNewVirtualObjectInstance(index: nodeTypeIndex!)
                 node.addChildNode(newNode)
                 node.name = virtualObjectNodeName
                 self.virtualObjectNodes.append(newNode)
@@ -256,16 +261,12 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         discardDecorButton.isEnabled = true
         decorationModeButton.isHidden = true
         exitDecorationModeButton.isHidden = false
+        nextObjectButton.isHidden = false
     }
 
     @IBAction func exitDecorationMode() {
         discardDecoration()
-        decorationModeButton.isHidden = false
-        saveExperienceButton.isHidden = true
-        isInDecorationMode = false
-        discardDecorButton.isHidden = true
-        discardDecorButton.isEnabled = false
-        exitDecorationModeButton.isHidden = true
+        prepareMainScene()
     }
     
     @IBAction func discardDecoration() {
@@ -297,6 +298,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         discardDecorButton.isHidden = true
         discardDecorButton.isEnabled = false
         exitDecorationModeButton.isHidden = true
+        nextObjectButton.isHidden = true
     }
     
     // Called opportunistically to verify that map data can be loaded from filesystem.
@@ -375,7 +377,9 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
 //        if let existingAnchor = virtualObjectAnchor {
 //            sceneView.session.remove(anchor: existingAnchor)
 //        }
-        let virtualObjectAnchor = ARAnchor(name: virtualObjectAnchorName + String(self.virtualObjectNodes.count), transform: hitTestResult.worldTransform)
+        let anchorName = virtualObjectAnchorName + String(self.virtualObjectNodes.count) +
+            " " + String(currentObjectIndex)
+        let virtualObjectAnchor = ARAnchor(name: anchorName, transform: hitTestResult.worldTransform)
         sceneView.session.add(anchor: virtualObjectAnchor)
         self.unsavedVirtualObjectIndices.append(self.virtualObjectNodes.count)
     }
@@ -384,8 +388,9 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     let virtualObjectAnchorName = "VirtualObjectAnchor"
     let virtualObjectNodeName = "VirtualObjectNode"
     
-    func getNewVirtualObjectInstance() -> SCNNode {
-        guard let sceneURL = Bundle.main.url(forResource: "cup", withExtension: "scn", subdirectory: "Assets.scnassets/cup"),
+    func getNewVirtualObjectInstance(index: Int) -> SCNNode {
+        let currentObjectStr = availableObjects[index]
+        guard let sceneURL = Bundle.main.url(forResource: currentObjectStr, withExtension: "scn", subdirectory: "Assets.scnassets/" + currentObjectStr),
             let referenceNode = SCNReferenceNode(url: sceneURL) else {
                 fatalError("can't load virtual object")
         }
@@ -395,6 +400,16 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         return referenceNode
     }
     
+    @IBAction func nextObject() {
+        self.currentObjectIndex = (self.currentObjectIndex + 1) % self.availableObjects.count
+        updateNextObjectButtonLabel()
+    }
+    
+    func updateNextObjectButtonLabel() {
+        let currentObjectStr = availableObjects[currentObjectIndex]
+        self.nextObjectButton.setTitle(currentObjectStr, for: .normal)
+    }
+
     func removeSavedWorldByName(name: String) {
         let fileManager = FileManager.default
         let dirPath = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0] as NSString
@@ -448,7 +463,6 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
                         self.worldName = userEntry
                         self.runSession()
                         self.loadExperience()
-//                        self.enterMainScene()
                         break
                     }
                 }
