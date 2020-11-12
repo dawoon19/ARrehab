@@ -34,7 +34,8 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     var initLock = NSLock()
     
     var virtualObjectNodes: [SCNNode] = []
-    var unsavedVirtualObjectnodes: [SCNNode] = []
+    var virtualObjectAnchors: [ARAnchor] = []
+    var unsavedVirtualObjectIndices: [Int] = []
 
     // MARK: - View Life Cycle
     
@@ -98,7 +99,12 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
                 node.addChildNode(newNode)
                 node.name = virtualObjectNodeName
                 self.virtualObjectNodes.append(newNode)
-                self.unsavedVirtualObjectnodes.append(newNode)
+                self.virtualObjectAnchors.append(anchor)
+                guard self.virtualObjectAnchors.count == self.virtualObjectNodes.count else {
+                    print("ERROR! COUNTS DON'T MATCH")
+                    return
+                }
+                print(self.unsavedVirtualObjectIndices)
             }
         }
     }
@@ -239,7 +245,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
                 fatalError("Can't save map: \(error.localizedDescription)")
             }
         }
-        self.unsavedVirtualObjectnodes = []
+        self.unsavedVirtualObjectIndices = []
 //        exitDecorationMode()
     }
     
@@ -264,10 +270,15 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     
     @IBAction func discardDecoration() {
 //        loadExperience()
-        for node in self.unsavedVirtualObjectnodes {
-            self.removeNodeFromCache(node: node)
+        for index in self.unsavedVirtualObjectIndices.reversed() {
+            let anchor = self.virtualObjectAnchors[index]
+            let node = self.virtualObjectNodes[index]
+            self.sceneView.session.remove(anchor: anchor)
             node.removeFromParentNode()
+            self.virtualObjectAnchors.remove(at: index)
+            self.virtualObjectNodes.remove(at: index)
         }
+        self.unsavedVirtualObjectIndices = []
 //        exitDecorationMode()
     }
     
@@ -364,15 +375,9 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
 //        if let existingAnchor = virtualObjectAnchor {
 //            sceneView.session.remove(anchor: existingAnchor)
 //        }
-    
         let virtualObjectAnchor = ARAnchor(name: virtualObjectAnchorName + String(self.virtualObjectNodes.count), transform: hitTestResult.worldTransform)
         sceneView.session.add(anchor: virtualObjectAnchor)
-        print("added")
-//        sceneView.session.getCurrentWorldMap { worldMap, error in
-//            guard let map = worldMap
-//                else { self.showAlert(title: "Can't get current world map", message: error!.localizedDescription); return }
-//            print(map.anchors.count)
-//        }
+        self.unsavedVirtualObjectIndices.append(self.virtualObjectNodes.count)
     }
 
 //    var virtualObjectAnchor: ARAnchor?
