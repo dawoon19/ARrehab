@@ -17,6 +17,8 @@
 		842316E71F2030C300D189D1 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 842316E51F2030C300D189D1 /* Main.storyboard */; };
 		842316EC1F2030C300D189D1 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 842316EA1F2030C300D189D1 /* LaunchScreen.storyboard */; };
 		84ABEA0A1F3D15E70052D547 /* Assets.scnassets in Resources */ = {isa = PBXBuildFile; fileRef = 84ABEA091F3D15E70052D547 /* Assets.scnassets */; };
+		9B7AFF5A255D04E90095979A /* squat version 1.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 9B7AFF59255D04E90095979A /* squat version 1.usdz */; };
+		9B7AFF5C255D05510095979A /* squat version 2.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 9B7AFF5B255D05510095979A /* squat version 2.usdz */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -33,6 +35,8 @@
 		842316EB1F2030C300D189D1 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		842316ED1F2030C300D189D1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		84ABEA091F3D15E70052D547 /* Assets.scnassets */ = {isa = PBXFileReference; lastKnownFileType = wrapper.scnassets; path = Assets.scnassets; sourceTree = "<group>"; };
+		9B7AFF59255D04E90095979A /* squat version 1.usdz */ = {isa = PBXFileReference; lastKnownFileType = file.usdz; path = "squat version 1.usdz"; sourceTree = "<group>"; };
+		9B7AFF5B255D05510095979A /* squat version 2.usdz */ = {isa = PBXFileReference; lastKnownFileType = file.usdz; path = "squat version 2.usdz"; sourceTree = "<group>"; };
 		E292F9BA5F620955E859EA24 /* LICENSE.txt */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = LICENSE.txt; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -77,6 +81,8 @@
 		842316DE1F2030C300D189D1 /* ARPersistence */ = {
 			isa = PBXGroup;
 			children = (
+				9B7AFF5B255D05510095979A /* squat version 2.usdz */,
+				9B7AFF59255D04E90095979A /* squat version 1.usdz */,
 				842316E31F2030C300D189D1 /* ViewController.swift */,
 				5CB92B4E20D852B0004D38D8 /* SnapshotAnchor.swift */,
 				11E97209209A355F006E3D26 /* Utilities.swift */,
@@ -160,8 +166,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				84ABEA0A1F3D15E70052D547 /* Assets.scnassets in Resources */,
+				9B7AFF5A255D04E90095979A /* squat version 1.usdz in Resources */,
 				842316EC1F2030C300D189D1 /* LaunchScreen.storyboard in Resources */,
 				5C7AB42A20DC114B00693DDD /* README.md in Resources */,
+				9B7AFF5C255D05510095979A /* squat version 2.usdz in Resources */,
 				112FE5671F4F95A200BF85EA /* Assets.xcassets in Resources */,
 				842316E71F2030C300D189D1 /* Main.storyboard in Resources */,
 			);
