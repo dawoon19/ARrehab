@@ -346,7 +346,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     let virtualObjectAnchorName = "virtualObject"
 
     var virtualObject: SCNNode = {
-        guard let sceneURL = Bundle.main.url(forResource: "cup", withExtension: "scn", subdirectory: "Assets.scnassets/cup"),
+        guard let sceneURL = Bundle.main.url(forResource: "run", withExtension: "usdz", subdirectory: "Assets.scnassets/Dragon"),
             let referenceNode = SCNReferenceNode(url: sceneURL) else {
                 fatalError("can't load virtual object")
         }
