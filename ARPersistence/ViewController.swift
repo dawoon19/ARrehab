@@ -36,11 +36,13 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     var isCreatingNewWorld: Bool = false
     var isRelocalizing: Bool = false
     var worldHasLoaded: Bool = false
+    var useRaycast: Bool = false
     var initLock = NSLock()
     
     var virtualObjectNodes: [SCNNode] = []
     var virtualObjectAnchors: [ARAnchor] = []
     var unsavedVirtualObjectIndices: [Int] = []
+    var cameraTransform: simd_float4x4 = simd_float4x4.init()
 
     // MARK: - View Life Cycle
     
@@ -85,16 +87,16 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         }
         updateNextObjectButtonLabel()
     }
-    
+
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        
+
         // Pause the view's AR session.
         sceneView.session.pause()
     }
-    
+
     // MARK: - ARSCNViewDelegate
-    
+
     /// - Tag: RestoreVirtualContent
     func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
         if let name = anchor.name {
@@ -113,9 +115,9 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
             }
         }
     }
-    
+
     // MARK: - ARSessionDelegate
-    
+
     func session(_ session: ARSession, cameraDidChangeTrackingState camera: ARCamera) {
         switch camera.trackingState.description {
         case "Relocalizing":
@@ -128,14 +130,15 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
                 enterMainScene()
             }
         }
+        
     }
-    
+
     /// - Tag: CheckMappingStatus
     func session(_ session: ARSession, didUpdate frame: ARFrame) {
         // Enable Save button only when the mapping status is good and an object has been placed
-        
+
         if self.worldName.count == 0 { return }
-        
+
         initLock.lock()
         if self.isCreatingNewWorld && !self.worldHasBeenSaved {
             switch frame.worldMappingStatus {
@@ -160,34 +163,37 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         Mapping: \(frame.worldMappingStatus.description)
         Tracking: \(frame.camera.trackingState.description)
         """
+
+        let transform = frame.camera.transform.columns.3
+        self.cameraTransform = float4x4(SIMD4<Float>(1, 0, 0, 0), SIMD4<Float>(0, 1, 0, 0), SIMD4<Float>(0, 0, 1, 0), SIMD4<Float>(transform.x, transform.y, transform.z, 1))
     }
-    
+
     // MARK: - ARSessionObserver
-    
+
     func sessionWasInterrupted(_ session: ARSession) {
         // Inform the user that the session has been interrupted, for example, by presenting an overlay.
         sessionInfoLabel.text = "Session was interrupted"
     }
-    
+
     func sessionInterruptionEnded(_ session: ARSession) {
         // Reset tracking and/or remove existing anchors if consistent tracking is required.
         sessionInfoLabel.text = "Session interruption ended"
     }
-    
+
     func session(_ session: ARSession, didFailWithError error: Error) {
         sessionInfoLabel.text = "Session failed: \(error.localizedDescription)"
         guard error is ARError else { return }
-        
+
         let errorWithInfo = error as NSError
         let messages = [
             errorWithInfo.localizedDescription,
             errorWithInfo.localizedFailureReason,
             errorWithInfo.localizedRecoverySuggestion
         ]
-        
+
         // Remove optional error messages.
         let errorMessage = messages.compactMap({ $0 }).joined(separator: "\n")
-        
+
         DispatchQueue.main.async {
             // Present an alert informing about the error that has occurred.
             let alertController = UIAlertController(title: "The AR session failed.", message: errorMessage, preferredStyle: .alert)
@@ -203,7 +209,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     func sessionShouldAttemptRelocalization(_ session: ARSession) -> Bool {
         return true
     }
-    
+
     func getSaveURL(name: String) -> URL {
         return {
             do {
@@ -366,9 +372,9 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
             return
         }
         // Hit test to find a place for a virtual object.
-        guard let hitTestResult = sceneView
+        guard let transform = useRaycast ? sceneView
             .hitTest(sender.location(in: sceneView), types: [.existingPlaneUsingGeometry, .estimatedHorizontalPlane])
-            .first
+            .first?.worldTransform : self.cameraTransform
             else {
                 return
             }
@@ -379,7 +385,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
 //        }
         let anchorName = virtualObjectAnchorName + String(self.virtualObjectNodes.count) +
             " " + String(currentObjectIndex)
-        let virtualObjectAnchor = ARAnchor(name: anchorName, transform: hitTestResult.worldTransform)
+        let virtualObjectAnchor = ARAnchor(name: anchorName, transform: transform)
         sceneView.session.add(anchor: virtualObjectAnchor)
         self.unsavedVirtualObjectIndices.append(self.virtualObjectNodes.count)
     }
@@ -396,7 +402,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         }
         referenceNode.load()
         referenceNode.name = self.virtualObjectNodeName + String(self.virtualObjectNodes.count)
-        
+    
         return referenceNode
     }
     
