@@ -41,6 +41,8 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     
     var virtualObjectNodes: [SCNNode] = []
     var virtualObjectAnchors: [ARAnchor] = []
+    var virtualPetNodes: [SCNNode] = []
+    var virtualPetAnchors: [ARAnchor] = []
     var unsavedVirtualObjectIndices: [Int] = []
     var cameraTransform: simd_float4x4 = simd_float4x4.init()
 
@@ -86,6 +88,10 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
             selectWorldToLoad()
         }
         updateNextObjectButtonLabel()
+        
+        let anchorName = virtualPetAnchorName
+        let virtualPetAnchor = ARAnchor(name: anchorName, transform: float4x4(SIMD4<Float>(1, 0, 0, 0), SIMD4<Float>(0, 1, 0, 0), SIMD4<Float>(0, 0, 1, 0), SIMD4<Float>(0, -0.2, 0, 1)))
+        sceneView.session.add(anchor: virtualPetAnchor)
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -112,6 +118,13 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
                     return
                 }
                 print(self.unsavedVirtualObjectIndices)
+            } else if name == virtualPetAnchorName {
+                let newNode = getDragonAnimation()
+                node.addChildNode(newNode)
+                node.name = virtualPetNodeName
+//                node.isHidden = true
+                self.virtualPetNodes.append(newNode)
+                self.virtualPetAnchors.append(anchor)
             }
         }
     }
@@ -368,31 +381,49 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     /// - Tag: PlaceObject
     @IBAction func handleSceneTap(_ sender: UITapGestureRecognizer) {
         // Disable placing objects when the session is still relocalizing
-        if !isInDecorationMode {
-            return
-        }
-        // Hit test to find a place for a virtual object.
-        guard let transform = useRaycast ? sceneView
-            .hitTest(sender.location(in: sceneView), types: [.existingPlaneUsingGeometry, .estimatedHorizontalPlane])
-            .first?.worldTransform : self.cameraTransform
-            else {
-                return
-            }
+        if isInDecorationMode {
+            // Hit test to find a place for a virtual object.
+            guard let transform = useRaycast ? sceneView
+                .hitTest(sender.location(in: sceneView), types: [.existingPlaneUsingGeometry, .estimatedHorizontalPlane])
+                .first?.worldTransform : self.cameraTransform
+                else {
+                    return
+                }
 
-        // Remove exisitng anchor and add new anchor
-//        if let existingAnchor = virtualObjectAnchor {
-//            sceneView.session.remove(anchor: existingAnchor)
-//        }
-        let anchorName = virtualObjectAnchorName + String(self.virtualObjectNodes.count) +
-            " " + String(currentObjectIndex)
-        let virtualObjectAnchor = ARAnchor(name: anchorName, transform: transform)
-        sceneView.session.add(anchor: virtualObjectAnchor)
-        self.unsavedVirtualObjectIndices.append(self.virtualObjectNodes.count)
+            // Remove exisitng anchor and add new anchor
+    //        if let existingAnchor = virtualObjectAnchor {
+    //            sceneView.session.remove(anchor: existingAnchor)
+    //        }
+            let anchorName = virtualObjectAnchorName + String(self.virtualObjectNodes.count) +
+                " " + String(currentObjectIndex)
+            let virtualObjectAnchor = ARAnchor(name: anchorName, transform: transform)
+            sceneView.session.add(anchor: virtualObjectAnchor)
+            self.unsavedVirtualObjectIndices.append(self.virtualObjectNodes.count)
+        }
+        else {
+            guard let transform = sceneView
+                .hitTest(sender.location(in: sceneView), types: [.existingPlaneUsingGeometry, .estimatedHorizontalPlane])
+                .first?.worldTransform
+                else {
+                    return
+                }
+
+            SCNTransaction.animationDuration = 3.0
+            print(self.virtualPetNodes.count)
+            if self.virtualPetNodes.count > 0 {
+                let node = self.virtualPetNodes[0]
+                node.simdTransform = transform
+                node.simdScale = SIMD3<Float>(0.2, 0.2, 0.2)
+            }
+        }
     }
 
 //    var virtualObjectAnchor: ARAnchor?
     let virtualObjectAnchorName = "VirtualObjectAnchor"
     let virtualObjectNodeName = "VirtualObjectNode"
+    
+    let virtualPetAnchorName = "VirtualPetAnchor"
+    let virtualPetNodeName = "VirtualPetNode"
     
     func getNewVirtualObjectInstance(index: Int) -> SCNNode {
         let currentObjectStr = availableObjects[index]
@@ -403,6 +434,16 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         referenceNode.load()
         referenceNode.name = self.virtualObjectNodeName + String(self.virtualObjectNodes.count)
     
+        return referenceNode
+    }
+    
+    func getDragonAnimation() -> SCNNode {
+        guard let usdzURL = Bundle.main.url(forResource: "run", withExtension: "usdz"),
+            let referenceNode = SCNReferenceNode(url: usdzURL)
+            else { fatalError("can't find dragon asset") }
+        referenceNode.load()
+        referenceNode.simdScale = SIMD3<Float>(0.2, 0.2, 0.2)
+        
         return referenceNode
     }
     
