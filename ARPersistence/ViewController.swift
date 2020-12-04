@@ -29,6 +29,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     var saveFileExtension: String = ".arexperience"
     
     var availableObjects: [String] = ["cup", "chair", "candle"]
+    var dragonAnimations: [String] = ["run", "fly"]
     var currentObjectIndex: Int = 0
     
     var isInDecorationMode: Bool = false
@@ -38,6 +39,8 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     var worldHasLoaded: Bool = false
     var useRaycast: Bool = false
     var initLock = NSLock()
+    
+    var parentNode: SCNNode = SCNNode.init()
     
     var virtualObjectNodes: [SCNNode] = []
     var virtualObjectAnchors: [ARAnchor] = []
@@ -92,6 +95,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         let anchorName = virtualPetAnchorName
         let virtualPetAnchor = ARAnchor(name: anchorName, transform: float4x4(SIMD4<Float>(1, 0, 0, 0), SIMD4<Float>(0, 1, 0, 0), SIMD4<Float>(0, 0, 1, 0), SIMD4<Float>(0, -0.2, 0, 1)))
         sceneView.session.add(anchor: virtualPetAnchor)
+        
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -119,12 +123,14 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
                 }
                 print(self.unsavedVirtualObjectIndices)
             } else if name == virtualPetAnchorName {
-                let newNode = getDragonAnimation()
-                node.addChildNode(newNode)
-                node.name = virtualPetNodeName
-//                node.isHidden = true
-                self.virtualPetNodes.append(newNode)
+                self.parentNode = node
+                let newNodes = getDragonAnimations()
+                for newNode in newNodes {
+                    node.addChildNode(newNode)
+                    self.virtualPetNodes.append(newNode)
+                }
                 self.virtualPetAnchors.append(anchor)
+                setPetAnimation(name: "fly")
             }
         }
     }
@@ -307,7 +313,6 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         if let index = self.virtualObjectNodes.firstIndex(of: node) {
             self.virtualObjectNodes.remove(at: index)
         }
-        print(self.virtualObjectNodes.count)
     }
     
     func prepareMainScene() {
@@ -318,6 +323,32 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         discardDecorButton.isEnabled = false
         exitDecorationModeButton.isHidden = true
         nextObjectButton.isHidden = true
+    }
+    
+    func setPetAnimation(name: String) -> SCNNode {
+        let index = self.dragonAnimations.firstIndex(of: name)!
+        for i in 0...self.virtualPetNodes.count - 1 {
+            self.virtualPetNodes[i].removeFromParentNode()
+        }
+        parentNode.addChildNode(self.virtualPetNodes[index])
+        return self.virtualPetNodes[index]
+    }
+    
+    func movePet(transform: simd_float4x4) {
+        print(parentNode.childNodes)
+        let runNode = setPetAnimation(name: "run")
+        print(parentNode.childNodes)
+        SCNTransaction.animationDuration = 3.0
+        runNode.simdTransform = transform
+        runNode.simdScale = SIMD3<Float>(0.2, 0.2, 0.2)
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            let flyNode = self.setPetAnimation(name: "fly")
+            print(self.parentNode.childNodes)
+            SCNTransaction.animationDuration = 0
+            flyNode.simdTransform = transform
+            flyNode.simdScale = SIMD3<Float>(0.2, 0.2, 0.2)
+        }
     }
     
     // Called opportunistically to verify that map data can be loaded from filesystem.
@@ -408,12 +439,9 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
                     return
                 }
 
-            SCNTransaction.animationDuration = 3.0
             print(self.virtualPetNodes.count)
             if self.virtualPetNodes.count > 0 {
-                let node = self.virtualPetNodes[0]
-                node.simdTransform = transform
-                node.simdScale = SIMD3<Float>(0.2, 0.2, 0.2)
+                movePet(transform: transform)
             }
         }
     }
@@ -437,14 +465,20 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         return referenceNode
     }
     
-    func getDragonAnimation() -> SCNNode {
-        guard let usdzURL = Bundle.main.url(forResource: "run", withExtension: "usdz"),
-            let referenceNode = SCNReferenceNode(url: usdzURL)
-            else { fatalError("can't find dragon asset") }
-        referenceNode.load()
-        referenceNode.simdScale = SIMD3<Float>(0.2, 0.2, 0.2)
+    func getDragonAnimations() -> [SCNNode] {
+        var nodes : [SCNNode] = []
         
-        return referenceNode
+        for name in dragonAnimations {
+            guard let usdzURL = Bundle.main.url(forResource: name, withExtension: "usdz"),
+                let referenceNode = SCNReferenceNode(url: usdzURL)
+                else { fatalError("can't find dragon asset") }
+            referenceNode.load()
+            referenceNode.simdScale = SIMD3<Float>(0.2, 0.2, 0.2)
+            referenceNode.name = virtualPetNodeName + name
+            nodes.append(referenceNode)
+        }
+
+        return nodes
     }
     
     @IBAction func nextObject() {

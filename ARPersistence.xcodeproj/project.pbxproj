@@ -20,6 +20,7 @@
 		9B7AFF5A255D04E90095979A /* squat version 1.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 9B7AFF59255D04E90095979A /* squat version 1.usdz */; };
 		9B7AFF5C255D05510095979A /* squat version 2.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 9B7AFF5B255D05510095979A /* squat version 2.usdz */; };
 		9B7AFF5E2575C3870095979A /* run.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 9B7AFF5D2575C3870095979A /* run.usdz */; };
+		9B7AFF60257860200095979A /* fly.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 9B7AFF5F257860200095979A /* fly.usdz */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -39,6 +40,7 @@
 		9B7AFF59255D04E90095979A /* squat version 1.usdz */ = {isa = PBXFileReference; lastKnownFileType = file.usdz; path = "squat version 1.usdz"; sourceTree = "<group>"; };
 		9B7AFF5B255D05510095979A /* squat version 2.usdz */ = {isa = PBXFileReference; lastKnownFileType = file.usdz; path = "squat version 2.usdz"; sourceTree = "<group>"; };
 		9B7AFF5D2575C3870095979A /* run.usdz */ = {isa = PBXFileReference; lastKnownFileType = file.usdz; path = run.usdz; sourceTree = "<group>"; };
+		9B7AFF5F257860200095979A /* fly.usdz */ = {isa = PBXFileReference; lastKnownFileType = file.usdz; path = fly.usdz; sourceTree = "<group>"; };
 		E292F9BA5F620955E859EA24 /* LICENSE.txt */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = LICENSE.txt; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -83,6 +85,7 @@
 		842316DE1F2030C300D189D1 /* ARPersistence */ = {
 			isa = PBXGroup;
 			children = (
+				9B7AFF5F257860200095979A /* fly.usdz */,
 				9B7AFF5D2575C3870095979A /* run.usdz */,
 				9B7AFF5B255D05510095979A /* squat version 2.usdz */,
 				9B7AFF59255D04E90095979A /* squat version 1.usdz */,
@@ -170,6 +173,7 @@
 			files = (
 				84ABEA0A1F3D15E70052D547 /* Assets.scnassets in Resources */,
 				9B7AFF5E2575C3870095979A /* run.usdz in Resources */,
+				9B7AFF60257860200095979A /* fly.usdz in Resources */,
 				9B7AFF5A255D04E90095979A /* squat version 1.usdz in Resources */,
 				842316EC1F2030C300D189D1 /* LaunchScreen.storyboard in Resources */,
 				5C7AB42A20DC114B00693DDD /* README.md in Resources */,
