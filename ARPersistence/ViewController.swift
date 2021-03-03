@@ -58,7 +58,6 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        
         // Read in any already saved map to see if we can load one.
     }
     
@@ -294,12 +293,15 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         prepareMainScene()
     }
     
+    /**
+    
+     */
     @IBAction func discardDecoration() {
 //        loadExperience()
         for index in self.unsavedVirtualObjectIndices.reversed() {
             let anchor = self.virtualObjectAnchors[index]
             let node = self.virtualObjectNodes[index]
-            self.sceneView.session.remove(anchor: anchor)
+            self.sceneView.session.remove(anchor: anchor) // scene disconnects from the anchored decoration we want to remove
             node.removeFromParentNode()
             self.virtualObjectAnchors.remove(at: index)
             self.virtualObjectNodes.remove(at: index)
@@ -315,6 +317,9 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         }
     }
     
+    /**
+     Initializes scene by showing or hiding buttons depending on their relevance to the user
+     */
     func prepareMainScene() {
         decorationModeButton.isHidden = false
         saveExperienceButton.isHidden = true
