@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="15705" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="BYZ-38-t0r">
+    <device id="retina6_1" orientation="portrait" appearance="light"/>
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="15706"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <scenes>
+        <!--ARView-->
+        <scene sceneID="tne-QT-ifu">
+            <objects>
+                <viewController id="BYZ-38-t0r" userLabel="ARView" customClass="ViewController" customModule="PracticeDragonPlacement" customModuleProvider="target" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="Plw-tU-dWV">
+                        <rect key="frame" x="0.0" y="0.0" width="414" height="896"/>
+                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                        <subviews>
+                            <arView multipleTouchEnabled="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="s1F-Hl-XLa">
+                                <rect key="frame" x="0.0" y="0.0" width="414" height="896"/>
+                            </arView>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Relocalizing" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="XmN-Wp-mU9">
+                                <rect key="frame" x="161" y="106" width="92" height="21"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Session interruption" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="WPg-eY-B1o">
+                                <rect key="frame" x="130.5" y="816" width="153" height="21"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                        </subviews>
+                        <color key="backgroundColor" systemColor="systemBackgroundColor" cocoaTouchSystemColor="whiteColor"/>
+                        <constraints>
+                            <constraint firstItem="1pf-y0-cG6" firstAttribute="bottom" secondItem="WPg-eY-B1o" secondAttribute="bottom" constant="25" id="MZR-Tk-ePJ"/>
+                            <constraint firstItem="XmN-Wp-mU9" firstAttribute="centerX" secondItem="Plw-tU-dWV" secondAttribute="centerX" id="OgZ-6o-oBi"/>
+                            <constraint firstItem="WPg-eY-B1o" firstAttribute="centerX" secondItem="Plw-tU-dWV" secondAttribute="centerX" id="PZo-uS-akS"/>
+                            <constraint firstItem="s1F-Hl-XLa" firstAttribute="leading" secondItem="1pf-y0-cG6" secondAttribute="leading" id="QVB-XI-Zmc"/>
+                            <constraint firstItem="s1F-Hl-XLa" firstAttribute="top" secondItem="Plw-tU-dWV" secondAttribute="top" id="VuX-FV-KAY"/>
+                            <constraint firstItem="s1F-Hl-XLa" firstAttribute="trailing" secondItem="1pf-y0-cG6" secondAttribute="trailing" id="lvx-ZU-6F2"/>
+                            <constraint firstItem="XmN-Wp-mU9" firstAttribute="top" secondItem="1pf-y0-cG6" secondAttribute="top" constant="62" id="n9w-vV-eGT"/>
+                            <constraint firstAttribute="bottom" secondItem="s1F-Hl-XLa" secondAttribute="bottom" id="oeu-dm-nSQ"/>
+                            <constraint firstItem="s1F-Hl-XLa" firstAttribute="centerY" secondItem="Plw-tU-dWV" secondAttribute="centerY" id="r8Q-4O-3Wt"/>
+                            <constraint firstItem="s1F-Hl-XLa" firstAttribute="centerX" secondItem="Plw-tU-dWV" secondAttribute="centerX" id="unY-Zc-K1y"/>
+                        </constraints>
+                        <viewLayoutGuide key="safeArea" id="1pf-y0-cG6"/>
+                    </view>
+                    <connections>
+                        <outlet property="arView" destination="s1F-Hl-XLa" id="Puw-Yy-p5i"/>
+                        <outlet property="sessionInfoLabel" destination="WPg-eY-B1o" id="Mom-8t-fZZ"/>
+                        <outlet property="statusLabel" destination="XmN-Wp-mU9" id="T6f-RW-sv1"/>
+                        <outlet property="trackingStateLabel" destination="XmN-Wp-mU9" id="W4L-TS-yGN"/>
+                    </connections>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
+                <tapGestureRecognizer id="FEr-jm-ind">
+                    <connections>
+                        <action selector="analyzeTap:" destination="BYZ-38-t0r" id="Exo-HZ-U5E"/>
+                    </connections>
+                </tapGestureRecognizer>
+            </objects>
+            <point key="canvasLocation" x="137.68115942028987" y="133.92857142857142"/>
+        </scene>
+    </scenes>
+</document>
